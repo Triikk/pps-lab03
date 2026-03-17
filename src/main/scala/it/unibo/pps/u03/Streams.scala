@@ -45,6 +45,13 @@ object Streams extends App :
       case (k,elem) if k == 0 => Empty()
       case (k,elem) => cons(elem, fill(k-1)(elem))
 
+    def interleave[A](s1 : Stream[A], s2 : Stream[A]) : Stream[A] = (s1,s2) match {
+      case (Empty(),Empty()) => Empty()
+      case (s1,Empty()) => s1
+      case (Empty(),s2) => s2
+      case (Cons(h1,t1),Cons(h2,t2)) => cons(h1(),cons(h2(),interleave(t1(),t2())))
+    }
+
   end Stream
 
 @main def tryStreams =
