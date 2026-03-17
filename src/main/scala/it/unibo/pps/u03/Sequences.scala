@@ -1,6 +1,8 @@
 package u03
 
 import u03.Optionals.Optional
+import u03.Optionals.Optional.Just
+import u03.Optionals.Optional.Empty
 
 object Sequences: // Essentially, generic linkedlists
   
@@ -87,28 +89,67 @@ object Sequences: // Essentially, generic linkedlists
      * E.g., [30, 20, 10] => 10
      * E.g., [10, 1, 30] => 1
      */
-    def min(s: Sequence[Int]): Optional[Int] = ???
+    def min(s: Sequence[Int]): Optional[Int] =
+      @annotation.tailrec
+        def minRec(s : Sequence[Int], min : Optional[Int]) : Optional[Int] = (s,min) match {
+        case (Nil(),min) => min
+        case (Cons(h,t),Empty()) => minRec(t,Just(h))
+        case (Cons(h,t),Just(x)) if h < x => minRec(t,Just(h))
+        case (Cons(h,t),min) => minRec(t,min)
+      }
+      minRec(s,Empty())
+
 
     /*
      * Get the elements at even indices
      * E.g., [10, 20, 30] => [10, 30]
      * E.g., [10, 20, 30, 40] => [10, 30]
      */
-    def evenIndices[A](s: Sequence[A]): Sequence[A] = ???
+    def evenIndices[A](s: Sequence[A]): Sequence[A] = s match {
+      case Nil() => Nil()
+      case Cons(h, Nil()) => Cons(h, Nil())
+      case Cons(h1, Cons(h2, t2)) => Cons(h1, evenIndices(t2))
+    }
 
     /*
      * Check if the sequence contains the element
      * E.g., [10, 20, 30] => true if elem is 20
      * E.g., [10, 20, 30] => false if elem is 40
      */
-    def contains[A](s: Sequence[A])(elem: A): Boolean = ???
+    def contains[A](s: Sequence[A])(elem: A): Boolean = (s,elem) match {
+      case (Nil(),_) => false
+      case (Cons(h,t),elem) if h == elem => true
+      case (Cons(h,t),elem) => contains(t)(elem)
+    }
 
     /*
      * Remove duplicates from the sequence
      * E.g., [10, 20, 10, 30] => [10, 20, 30]
      * E.g., [10, 20, 30] => [10, 20, 30]
      */
-    def distinct[A](s: Sequence[A]): Sequence[A] = ???
+//    def distinct[A](s: Sequence[A]): Sequence[A] =
+//    // quadratic
+//      @annotation.tailrec
+//        def isPresent(s : Sequence[A], elem : A) : Boolean = (s,elem) match {
+//        case (Nil(),_) => false
+//        case (Cons(h,t),elem) if h == elem => true
+//        case (Cons(h,t),elem) => isPresent(t,elem)
+//      }
+//      @annotation.tailrec
+//      def distinctRec(s : Sequence[A], acc : Sequence[A]) : Sequence[A]  = (s,acc) match {
+//        case (Nil(),acc) => acc
+//        case (Cons(h,t),acc) if !isPresent(acc,h) => distinctRec(t,concat(acc,Cons(h,Nil())))
+//        case (Cons(h,t),acc) => distinctRec(t,acc)
+//      }
+//      distinctRec(s,Nil())
+
+    def distinct[A](s: Sequence[A]): Sequence[A] =
+      @annotation.tailrec
+      def distinctRec(s: Sequence[A], acc: Sequence[A]): Sequence[A] = (s, acc) match {
+        case (Nil(), acc) => acc
+        case (Cons(h,t), acc) => distinctRec(filter(t)(_ != h), concat(acc,Cons(h,Nil())))
+      }
+      distinctRec(s, Nil())
 
     /*
      * Group contiguous elements in the sequence
@@ -116,14 +157,29 @@ object Sequences: // Essentially, generic linkedlists
      * E.g., [10, 20, 30] => [[10], [20], [30]]
      * E.g., [10, 20, 20, 30] => [[10], [20, 20], [30]]
      */
-    def group[A](s: Sequence[A]): Sequence[Sequence[A]] = ???
+    def group[A](s: Sequence[A]): Sequence[Sequence[A]] =
+      @annotation.tailrec
+      def groupRec(s : Sequence[A], acc : Sequence[Sequence[A]]) : Sequence[Sequence[A]] = (s,acc) match {
+        case (Nil(),acc) => reverse(acc)
+        case (Cons(h,t),Nil()) => groupRec(t,Cons(Cons(h,Nil()),Nil()))
+        case (Cons(h,t),Cons(Cons(h2,t2),st)) if h == h2 => groupRec(t,Cons(Cons(h2,concat(t2,Cons(h,Nil()))),st))
+        case (Cons(h,t),Cons(sh,st)) => groupRec(t,Cons(Cons(h,Nil()),Cons(sh,st)))
+      }
+      groupRec(s,Nil())
 
     /*
      * Partition the sequence into two sequences based on the predicate
      * E.g., [10, 20, 30] => ([10], [20, 30]) if pred is (_ < 20)
      * E.g., [11, 20, 31] => ([20], [11, 31]) if pred is (_ % 2 == 0)
      */
-    def partition[A](s: Sequence[A])(pred: A => Boolean): (Sequence[A], Sequence[A]) = ???
+    def partition[A](s: Sequence[A])(pred: A => Boolean): (Sequence[A], Sequence[A]) =
+      @annotation.tailrec
+      def partitionRec(s : Sequence[A])(pred : A => Boolean)(acc : (Sequence[A], Sequence[A])): (Sequence[A], Sequence[A]) = (s,pred,acc) match {
+        case (Nil(),pred,acc) => acc
+        case (Cons(h,t),pred,(st,sf)) if pred(h) => partitionRec(t)(pred)((concat(st,Cons(h,Nil())),sf))
+        case (Cons(h,t),pred,(st,sf)) => partitionRec(t)(pred)((st,concat(sf,Cons(h,Nil()))))
+      }
+      partitionRec(s)(pred)((Nil(),Nil()))
 
 @main def trySequences =
   import Sequences.* 
